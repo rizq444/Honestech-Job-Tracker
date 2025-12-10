@@ -90,6 +90,11 @@ body {
   gap: .75rem;
 }
 
+.empty-state {
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+
 .job-card {
   background: var(--bg);
   padding: .8rem;
@@ -101,6 +106,39 @@ body {
   display: flex;
   justify-content: space-between;
   margin-bottom: .5rem;
+}
+
+.job-title {
+  font-weight: 600;
+}
+
+.job-meta {
+  font-size: .8rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: .3rem;
+}
+
+.job-tech-row {
+  margin-top: .3rem;
+  margin-bottom: .3rem;
+}
+
+.job-tech-row label {
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+
+.job-tech-input {
+  margin-left: .25rem;
+  padding: .25rem .35rem;
+  border-radius: 6px;
+  border: 1px solid #1e293b;
+  background: #020617;
+  color: var(--text);
+  font-size: .8rem;
 }
 
 .job-status-pill {
@@ -120,6 +158,35 @@ body {
 .job-status-pill[data-status="Canceled"] {
   background: rgba(239,68,68,0.3);
   border: 1px solid var(--danger);
+}
+
+/* Footer */
+.job-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: .4rem;
+  gap: .5rem;
+}
+
+.job-footer-left label {
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+
+.job-status-select {
+  margin-left: .25rem;
+  padding: .25rem .35rem;
+  border-radius: 6px;
+  border: 1px solid #1e293b;
+  background: #020617;
+  color: var(--text);
+  font-size: .8rem;
+}
+
+.job-footer-right {
+  display: flex;
+  gap: .35rem;
 }
 
 /* Buttons */
@@ -160,6 +227,7 @@ body {
 .job-raw summary {
   cursor: pointer;
   color: var(--text-muted);
+  font-size: .75rem;
 }
 
 .job-raw-json {
