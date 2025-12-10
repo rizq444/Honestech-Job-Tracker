@@ -7,11 +7,19 @@
   <meta name="color-scheme" content="dark">
   <link rel="stylesheet" href="styles.css">
 
-  <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Google Identity Services (calls gisLoaded on load) -->
+  <script
+    src="https://accounts.google.com/gsi/client"
+    async
+    defer
+    onload="gisLoaded()"></script>
 
-  <!-- Google API client -->
-  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <!-- Google API client (calls gapiLoaded on load) -->
+  <script
+    src="https://apis.google.com/js/api.js"
+    async
+    defer
+    onload="gapiLoaded()"></script>
 </head>
 <body>
 
@@ -96,7 +104,7 @@
         </select>
       </label>
 
-      <button class="btn tiny outline show-raw-btn">Details</button>
+      <button class="btn tiny outline show-raw-btn" type="button">Details</button>
     </footer>
 
     <details class="job-raw">
@@ -106,6 +114,7 @@
   </article>
 </template>
 
+<!-- Your Google config -->
 <script>
   const GOOGLE_CLIENT_ID = "408247992050-oclbr4urf2e5ep601a6f4dlka2ucdago.apps.googleusercontent.com";
   const GOOGLE_CALENDAR_ID = "primary";
