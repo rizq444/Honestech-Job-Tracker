@@ -1,0 +1,172 @@
+:root {
+  --bg: #020617;
+  --card: #0f172a;
+  --accent: #facc15;
+  --text: #f9fafb;
+  --text-muted: #9ca3af;
+  --success: #22c55e;
+  --danger: #ef4444;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Header */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: var(--card);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.logo-circle {
+  width: 38px;
+  height: 38px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: black;
+}
+
+.brand-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Filters */
+.filters {
+  background: var(--card);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.filters label {
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+.filters input,
+.filters select {
+  width: 100%;
+  padding: .45rem;
+  background: var(--bg);
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  color: var(--text);
+}
+
+/* Jobs */
+.jobs {
+  background: var(--card);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.job-card {
+  background: var(--bg);
+  padding: .8rem;
+  border-radius: 8px;
+  border: 1px solid #1e293b;
+}
+
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: .5rem;
+}
+
+.job-status-pill {
+  background: #1e293b;
+  padding: .2rem .5rem;
+  border-radius: 999px;
+  font-size: .65rem;
+  text-transform: uppercase;
+}
+
+/* Status colors */
+.job-status-pill[data-status="Done"] {
+  background: rgba(34,197,94,0.3);
+  border: 1px solid var(--success);
+}
+
+.job-status-pill[data-status="Canceled"] {
+  background: rgba(239,68,68,0.3);
+  border: 1px solid var(--danger);
+}
+
+/* Buttons */
+.btn {
+  border-radius: 999px;
+  padding: .4rem .8rem;
+  border: none;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: black;
+  font-weight: bold;
+}
+
+.btn.subtle {
+  background: transparent;
+  border: 1px solid #475569;
+  color: var(--text-muted);
+}
+
+.btn.small {
+  padding: .3rem .6rem;
+}
+
+.btn.tiny {
+  padding: .2rem .5rem;
+  font-size: .7rem;
+}
+
+.btn.outline {
+  border: 1px solid #475569;
+  background: transparent;
+}
+
+/* Raw JSON */
+.job-raw summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.job-raw-json {
+  background: var(--card);
+  padding: .5rem;
+  border-radius: 8px;
+  border: 1px solid #1e293b;
+  font-size: .75rem;
+  overflow: auto;
+}
