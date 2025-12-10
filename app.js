@@ -15,10 +15,8 @@ const jobsList = document.getElementById("jobsList");
 const jobTemplate = document.getElementById("jobCardTemplate");
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Default date = today
   dateFilter.value = new Date().toISOString().slice(0, 10);
-
-  window.gapiLoaded = gapiLoaded;
-  window.gisLoaded = gisLoaded;
 
   signinBtn.addEventListener("click", signIn);
   signoutBtn.addEventListener("click", signOut);
@@ -29,8 +27,9 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 });
 
-/******** GOOGLE INIT ********/
+/******** GOOGLE INIT – CALLED FROM SCRIPT TAGS ********/
 
+// Called when https://apis.google.com/js/api.js finishes loading
 async function gapiLoaded() {
   gapiInited = true;
   await gapi.load("client", initGapiClient);
@@ -44,6 +43,7 @@ async function initGapiClient() {
   maybeEnableSignin();
 }
 
+// Called when https://accounts.google.com/gsi/client finishes loading
 function gisLoaded() {
   gisInited = true;
 
@@ -51,6 +51,10 @@ function gisLoaded() {
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
     callback: (resp) => {
+      if (resp.error) {
+        console.error(resp);
+        return;
+      }
       accessToken = resp.access_token;
       signinBtn.hidden = true;
       signoutBtn.hidden = false;
@@ -62,14 +66,25 @@ function gisLoaded() {
 }
 
 function maybeEnableSignin() {
-  if (gapiInited && gisInited) signinBtn.disabled = false;
+  // You could disable the button by default in HTML if you want
+  if (gapiInited && gisInited) {
+    signinBtn.disabled = false;
+  }
 }
 
+/******** SIGN IN / OUT ********/
+
 function signIn() {
+  if (!tokenClient) {
+    console.error("Token client not ready yet.");
+    return;
+  }
   tokenClient.requestAccessToken({ prompt: "" });
 }
 
 function signOut() {
+  if (!accessToken) return;
+
   google.accounts.oauth2.revoke(accessToken, () => {
     accessToken = null;
     signinBtn.hidden = false;
@@ -81,28 +96,40 @@ function signOut() {
 /******** LOAD JOBS ********/
 
 async function loadJobs() {
-  if (!accessToken) return signIn();
+  if (!accessToken) {
+    signIn();
+    return;
+  }
 
-  const date = dateFilter.value;
+  const date = dateFilter.value || new Date().toISOString().slice(0, 10);
   const timeMin = new Date(date + "T00:00:00").toISOString();
   const timeMax = new Date(date + "T23:59:59").toISOString();
 
-  const res = await gapi.client.calendar.events.list({
-    calendarId: GOOGLE_CALENDAR_ID,
-    timeMin,
-    timeMax,
-    singleEvents: true,
-    orderBy: "startTime"
-  });
+  try {
+    const res = await gapi.client.calendar.events.list({
+      calendarId: GOOGLE_CALENDAR_ID,
+      timeMin,
+      timeMax,
+      singleEvents: true,
+      orderBy: "startTime"
+    });
 
-  const events = res.result.items || [];
-  renderJobs(events);
+    const events = res.result.items || [];
+    renderJobs(events);
+  } catch (err) {
+    console.error("Error loading events", err);
+    jobsList.innerHTML = `<div class="empty-state">Error loading events. Check console.</div>`;
+  }
 }
 
-/******** STATUS STORAGE ********/
+/******** STATUS STORAGE (LOCAL) ********/
 
 function store() {
-  return JSON.parse(localStorage.getItem("honestechStatus") || "{}");
+  try {
+    return JSON.parse(localStorage.getItem("honestechStatus") || "{}");
+  } catch {
+    return {};
+  }
 }
 
 function save(storeObj) {
@@ -154,7 +181,7 @@ function renderJobs(events) {
 
     const start = evt.start.dateTime || evt.start.date;
     const end = evt.end.dateTime || evt.end.date;
-    time.textContent = formatTime(start) + " - " + formatTime(end);
+    time.textContent = formatTime(start) + " – " + formatTime(end);
 
     select.addEventListener("change", () => {
       const val = select.value;
@@ -180,7 +207,7 @@ function formatTime(iso) {
 
 function applyFilters() {
   const sVal = statusFilter.value;
-  const search = searchFilter.value.toLowerCase();
+  const search = (searchFilter.value || "").toLowerCase();
 
   [...jobsList.querySelectorAll(".job-card")].forEach(card => {
     const title = card.querySelector(".job-title").textContent.toLowerCase();
@@ -191,7 +218,6 @@ function applyFilters() {
     let show = true;
 
     if (sVal !== "all" && st !== sVal) show = false;
-
     if (search && !(title + loc + notes).includes(search)) show = false;
 
     card.style.display = show ? "" : "none";
