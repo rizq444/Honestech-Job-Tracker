@@ -15,7 +15,6 @@ const jobsList = document.getElementById("jobsList");
 const jobTemplate = document.getElementById("jobCardTemplate");
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Default date = today
   dateFilter.value = new Date().toISOString().slice(0, 10);
 
   signinBtn.addEventListener("click", signIn);
@@ -29,7 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /******** GOOGLE INIT – CALLED FROM SCRIPT TAGS ********/
 
-// Called when https://apis.google.com/js/api.js finishes loading
 async function gapiLoaded() {
   gapiInited = true;
   await gapi.load("client", initGapiClient);
@@ -43,7 +41,6 @@ async function initGapiClient() {
   maybeEnableSignin();
 }
 
-// Called when https://accounts.google.com/gsi/client finishes loading
 function gisLoaded() {
   gisInited = true;
 
@@ -66,7 +63,6 @@ function gisLoaded() {
 }
 
 function maybeEnableSignin() {
-  // You could disable the button by default in HTML if you want
   if (gapiInited && gisInited) {
     signinBtn.disabled = false;
   }
@@ -122,28 +118,29 @@ async function loadJobs() {
   }
 }
 
-/******** STATUS STORAGE (LOCAL) ********/
+/******** LOCAL STORAGE (STATUS + TECH) ********/
 
-function store() {
+function getStore() {
   try {
-    return JSON.parse(localStorage.getItem("honestechStatus") || "{}");
+    return JSON.parse(localStorage.getItem("honestechJobs") || "{}");
   } catch {
     return {};
   }
 }
 
-function save(storeObj) {
-  localStorage.setItem("honestechStatus", JSON.stringify(storeObj));
+function saveStore(store) {
+  localStorage.setItem("honestechJobs", JSON.stringify(store));
 }
 
-function getStatus(id) {
-  return store()[id] || "Scheduled";
+function getJobMeta(id) {
+  const store = getStore();
+  return store[id] || { status: "Scheduled", tech: "" };
 }
 
-function setStatus(id, val) {
-  const s = store();
-  s[id] = val;
-  save(s);
+function setJobMeta(id, data) {
+  const store = getStore();
+  store[id] = { ...(store[id] || {}), ...data };
+  saveStore(store);
 }
 
 /******** RENDERING ********/
@@ -159,36 +156,70 @@ function renderJobs(events) {
   events.forEach(evt => {
     const card = jobTemplate.content.cloneNode(true);
 
-    const title = card.querySelector(".job-title");
-    const pill = card.querySelector(".job-status-pill");
-    const time = card.querySelector(".job-time");
-    const loc = card.querySelector(".job-location");
-    const notes = card.querySelector(".job-notes");
-    const select = card.querySelector(".job-status-select");
-    const raw = card.querySelector(".job-raw-json");
+    const titleEl = card.querySelector(".job-title");
+    const statusPill = card.querySelector(".job-status-pill");
+    const timeEl = card.querySelector(".job-time");
+    const locEl = card.querySelector(".job-location");
+    const notesEl = card.querySelector(".job-notes");
+    const statusSelect = card.querySelector(".job-status-select");
+    const techInput = card.querySelector(".job-tech-input");
+    const rawJsonEl = card.querySelector(".job-raw-json");
+    const navigateBtn = card.querySelector(".navigate-btn");
+    const showRawBtn = card.querySelector(".show-raw-btn");
+    const detailsEl = card.querySelector(".job-raw");
 
-    const id = evt.id;
+    const eventId = evt.id;
+    const location = evt.location || "";
+    const description = evt.description || "";
 
-    title.textContent = evt.summary || "(No title)";
-    loc.textContent = evt.location || "No location";
-    notes.textContent = evt.description || "";
-    raw.textContent = JSON.stringify(evt, null, 2);
+    const meta = getJobMeta(eventId);
+    const status = meta.status || "Scheduled";
+    const tech = meta.tech || "";
 
-    const s = getStatus(id);
-    pill.textContent = s;
-    pill.dataset.status = s;
-    select.value = s;
+    titleEl.textContent = evt.summary || "(No title)";
+    notesEl.textContent = description;
+    locEl.textContent = location || "No location set";
 
-    const start = evt.start.dateTime || evt.start.date;
-    const end = evt.end.dateTime || evt.end.date;
-    time.textContent = formatTime(start) + " – " + formatTime(end);
+    // Status
+    statusPill.textContent = status;
+    statusPill.dataset.status = status;
+    statusSelect.value = status;
 
-    select.addEventListener("change", () => {
-      const val = select.value;
-      pill.textContent = val;
-      pill.dataset.status = val;
-      setStatus(id, val);
+    statusSelect.addEventListener("change", () => {
+      const newStatus = statusSelect.value;
+      statusPill.textContent = newStatus;
+      statusPill.dataset.status = newStatus;
+      setJobMeta(eventId, { status: newStatus });
       applyFilters();
+    });
+
+    // Tech
+    techInput.value = tech;
+    techInput.addEventListener("change", () => {
+      setJobMeta(eventId, { tech: techInput.value.trim() });
+      applyFilters();
+    });
+
+    // Time
+    const start = evt.start?.dateTime || evt.start?.date;
+    const end = evt.end?.dateTime || evt.end?.date;
+    timeEl.textContent = formatTime(start) + " – " + formatTime(end);
+
+    // Raw JSON
+    rawJsonEl.textContent = JSON.stringify(evt, null, 2);
+    showRawBtn.addEventListener("click", () => {
+      detailsEl.open = !detailsEl.open;
+    });
+
+    // Navigate button
+    navigateBtn.addEventListener("click", () => {
+      if (!location) {
+        alert("No location set for this job.");
+        return;
+      }
+      const url = "https://www.google.com/maps/search/?api=1&query="
+        + encodeURIComponent(location);
+      window.open(url, "_blank");
     });
 
     jobsList.appendChild(card);
@@ -198,6 +229,7 @@ function renderJobs(events) {
 }
 
 function formatTime(iso) {
+  if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d)) return iso;
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -206,19 +238,26 @@ function formatTime(iso) {
 /******** FILTERS ********/
 
 function applyFilters() {
-  const sVal = statusFilter.value;
+  const statusVal = statusFilter.value;
   const search = (searchFilter.value || "").toLowerCase();
 
-  [...jobsList.querySelectorAll(".job-card")].forEach(card => {
-    const title = card.querySelector(".job-title").textContent.toLowerCase();
-    const loc = card.querySelector(".job-location").textContent.toLowerCase();
-    const notes = card.querySelector(".job-notes").textContent.toLowerCase();
-    const st = card.querySelector(".job-status-pill").dataset.status;
+  const cards = [...jobsList.querySelectorAll(".job-card")];
+
+  cards.forEach(card => {
+    const title = card.querySelector(".job-title")?.textContent.toLowerCase() || "";
+    const loc = card.querySelector(".job-location")?.textContent.toLowerCase() || "";
+    const notes = card.querySelector(".job-notes")?.textContent.toLowerCase() || "";
+    const tech = card.querySelector(".job-tech-input")?.value.toLowerCase() || "";
+    const st = card.querySelector(".job-status-pill")?.dataset.status || "";
 
     let show = true;
 
-    if (sVal !== "all" && st !== sVal) show = false;
-    if (search && !(title + loc + notes).includes(search)) show = false;
+    if (statusVal !== "all" && st !== statusVal) show = false;
+
+    if (search) {
+      const haystack = `${title} ${loc} ${notes} ${tech}`;
+      if (!haystack.includes(search)) show = false;
+    }
 
     card.style.display = show ? "" : "none";
   });
