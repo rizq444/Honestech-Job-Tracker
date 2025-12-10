@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Honestech Job Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Google API client -->
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+</head>
+<body>
+
+<header class="top-bar">
+  <div class="brand">
+    <span class="logo-circle">H</span>
+    <div class="brand-text">
+      <div class="brand-name">Honestech</div>
+      <div class="brand-sub">Job Tracker</div>
+    </div>
+  </div>
+
+  <div class="user-actions">
+    <button id="signinBtn" class="btn primary">Sign in with Google</button>
+    <button id="signoutBtn" class="btn subtle" hidden>Sign out</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="filters">
+    <h2>Filters</h2>
+
+    <label>
+      Date:
+      <input type="date" id="dateFilter">
+    </label>
+
+    <label>
+      Status:
+      <select id="statusFilter">
+        <option value="all">All</option>
+        <option value="Scheduled">Scheduled</option>
+        <option value="En Route">En Route</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Done">Done</option>
+        <option value="Canceled">Canceled</option>
+      </select>
+    </label>
+
+    <label>
+      Search:
+      <input type="text" id="searchFilter" placeholder="Name, car, plate, location...">
+    </label>
+
+    <button id="refreshBtn" class="btn small">Refresh from Calendar</button>
+
+    <p class="hint">* Jobs load from Google Calendar. Status is saved in your browser.</p>
+  </section>
+
+  <section class="jobs">
+    <h2>Jobs</h2>
+    <div id="jobsList" class="jobs-list">
+      <div class="empty-state">Sign in and click Refresh to load jobs.</div>
+    </div>
+  </section>
+</main>
+
+<!-- Job Card Template -->
+<template id="jobCardTemplate">
+  <article class="job-card">
+    <header class="job-header">
+      <div class="job-title"></div>
+      <span class="job-status-pill"></span>
+    </header>
+
+    <div class="job-meta">
+      <div class="job-time"></div>
+      <div class="job-location"></div>
+    </div>
+
+    <div class="job-notes"></div>
+
+    <footer class="job-footer">
+      <label>
+        Status:
+        <select class="job-status-select">
+          <option value="Scheduled">Scheduled</option>
+          <option value="En Route">En Route</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Done">Done</option>
+          <option value="Canceled">Canceled</option>
+        </select>
+      </label>
+
+      <button class="btn tiny outline show-raw-btn">Details</button>
+    </footer>
+
+    <details class="job-raw">
+      <summary>Raw Event Data</summary>
+      <pre class="job-raw-json"></pre>
+    </details>
+  </article>
+</template>
+
+<script>
+  const GOOGLE_CLIENT_ID = "408247992050-oclbr4urf2e5ep601a6f4dlka2ucdago.apps.googleusercontent.com";
+  const GOOGLE_CALENDAR_ID = "primary";
+</script>
+
+<script src="app.js"></script>
+</body>
+</html>
