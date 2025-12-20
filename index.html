@@ -33,7 +33,7 @@
   </div>
 
   <div class="user-actions">
-    <button id="signinBtn" class="btn primary">Sign in with Google</button>
+    <button id="signinBtn" class="btn primary" disabled>Sign in with Google</button>
     <button id="signoutBtn" class="btn subtle" hidden>Sign out</button>
   </div>
 </header>
@@ -67,7 +67,7 @@
     <button id="refreshBtn" class="btn small">Refresh from Calendar</button>
 
     <p class="hint">
-      * Jobs load from Google Calendar. Status & tech are saved in this browser.
+      * Jobs load from Google Calendar. Status & tech are saved in this browser (local).
     </p>
   </section>
 
@@ -128,7 +128,6 @@
   </article>
 </template>
 
-<!-- Your Google config -->
 <script>
   const GOOGLE_CLIENT_ID =
     "408247992050-oclbr4urf2e5ep601a6f4dlka2ucdago.apps.googleusercontent.com";
