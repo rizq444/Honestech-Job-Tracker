@@ -2,9 +2,10 @@ const SCOPES = "https://www.googleapis.com/auth/calendar.readonly";
 
 let tokenClient;
 let accessToken = null;
-let gapiInited = false;
-let gisInited = false;
+let gapiReady = false;
+let gisReady = false;
 
+// DOM
 const signinBtn = document.getElementById("signinBtn");
 const signoutBtn = document.getElementById("signoutBtn");
 const dateFilter = document.getElementById("dateFilter");
@@ -26,24 +27,18 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 });
 
-/******** GOOGLE INIT – CALLED FROM SCRIPT TAGS ********/
+/******** Google init (called from script tags in index.html) ********/
 
 async function gapiLoaded() {
-  gapiInited = true;
-  await gapi.load("client", initGapiClient);
-}
-
-async function initGapiClient() {
+  await new Promise(resolve => gapi.load("client", resolve));
   await gapi.client.init({
     discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"]
   });
-  gapiInited = true;
-  maybeEnableSignin();
+  gapiReady = true;
+  enableSigninIfReady();
 }
 
 function gisLoaded() {
-  gisInited = true;
-
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
@@ -58,23 +53,18 @@ function gisLoaded() {
       loadJobs();
     }
   });
-
-  maybeEnableSignin();
+  gisReady = true;
+  enableSigninIfReady();
 }
 
-function maybeEnableSignin() {
-  if (gapiInited && gisInited) {
-    signinBtn.disabled = false;
-  }
+function enableSigninIfReady() {
+  if (gapiReady && gisReady) signinBtn.disabled = false;
 }
 
-/******** SIGN IN / OUT ********/
+/******** Sign in / out ********/
 
 function signIn() {
-  if (!tokenClient) {
-    console.error("Token client not ready yet.");
-    return;
-  }
+  if (!tokenClient) return;
   tokenClient.requestAccessToken({ prompt: "" });
 }
 
@@ -89,7 +79,32 @@ function signOut() {
   });
 }
 
-/******** LOAD JOBS ********/
+/******** Local storage (status + tech) ********/
+
+function getLocalStore() {
+  try {
+    return JSON.parse(localStorage.getItem("honestechJobs") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function setLocalStore(store) {
+  localStorage.setItem("honestechJobs", JSON.stringify(store));
+}
+
+function getMeta(eventId) {
+  const store = getLocalStore();
+  return store[eventId] || { status: "Scheduled", tech: "" };
+}
+
+function setMeta(eventId, partial) {
+  const store = getLocalStore();
+  store[eventId] = { ...(store[eventId] || { status: "Scheduled", tech: "" }), ...partial };
+  setLocalStore(store);
+}
+
+/******** Load jobs from Google Calendar ********/
 
 async function loadJobs() {
   if (!accessToken) {
@@ -107,122 +122,87 @@ async function loadJobs() {
       timeMin,
       timeMax,
       singleEvents: true,
-      orderBy: "startTime"
+      orderBy: "startTime",
+      maxResults: 250
     });
 
     const events = res.result.items || [];
     renderJobs(events);
   } catch (err) {
-    console.error("Error loading events", err);
-    jobsList.innerHTML = `<div class="empty-state">Error loading events. Check console.</div>`;
+    console.error("Calendar load error:", err);
+    jobsList.innerHTML = `<div class="empty-state">Error loading events. Try again.</div>`;
   }
 }
 
-/******** LOCAL STORAGE (STATUS + TECH) ********/
-
-function getStore() {
-  try {
-    return JSON.parse(localStorage.getItem("honestechJobs") || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function saveStore(store) {
-  localStorage.setItem("honestechJobs", JSON.stringify(store));
-}
-
-function getJobMeta(id) {
-  const store = getStore();
-  return store[id] || { status: "Scheduled", tech: "" };
-}
-
-function setJobMeta(id, data) {
-  const store = getStore();
-  store[id] = { ...(store[id] || {}), ...data };
-  saveStore(store);
-}
-
-/******** RENDERING ********/
+/******** Render ********/
 
 function renderJobs(events) {
   jobsList.innerHTML = "";
 
   if (!events.length) {
-    jobsList.innerHTML = `<div class="empty-state">No jobs for this day.</div>`;
+    jobsList.innerHTML = `<div class="empty-state">No jobs found for this date.</div>`;
     return;
   }
 
   events.forEach(evt => {
-    const card = jobTemplate.content.cloneNode(true);
+    const node = jobTemplate.content.cloneNode(true);
 
-    const titleEl = card.querySelector(".job-title");
-    const statusPill = card.querySelector(".job-status-pill");
-    const timeEl = card.querySelector(".job-time");
-    const locEl = card.querySelector(".job-location");
-    const notesEl = card.querySelector(".job-notes");
-    const statusSelect = card.querySelector(".job-status-select");
-    const techInput = card.querySelector(".job-tech-input");
-    const rawJsonEl = card.querySelector(".job-raw-json");
-    const navigateBtn = card.querySelector(".navigate-btn");
-    const showRawBtn = card.querySelector(".show-raw-btn");
-    const detailsEl = card.querySelector(".job-raw");
+    const titleEl = node.querySelector(".job-title");
+    const pillEl = node.querySelector(".job-status-pill");
+    const timeEl = node.querySelector(".job-time");
+    const locEl = node.querySelector(".job-location");
+    const notesEl = node.querySelector(".job-notes");
+    const statusSelect = node.querySelector(".job-status-select");
+    const techInput = node.querySelector(".job-tech-input");
+    const navigateBtn = node.querySelector(".navigate-btn");
+    const rawBtn = node.querySelector(".show-raw-btn");
+    const detailsEl = node.querySelector(".job-raw");
+    const rawJsonEl = node.querySelector(".job-raw-json");
 
     const eventId = evt.id;
-    const location = evt.location || "";
-    const description = evt.description || "";
-
-    const meta = getJobMeta(eventId);
-    const status = meta.status || "Scheduled";
-    const tech = meta.tech || "";
+    const meta = getMeta(eventId);
 
     titleEl.textContent = evt.summary || "(No title)";
-    notesEl.textContent = description;
-    locEl.textContent = location || "No location set";
+    locEl.textContent = evt.location || "No location set";
+    notesEl.textContent = evt.description || "";
 
-    // Status
-    statusPill.textContent = status;
-    statusPill.dataset.status = status;
+    const status = meta.status || "Scheduled";
+    pillEl.textContent = status;
+    pillEl.dataset.status = status;
     statusSelect.value = status;
+
+    techInput.value = meta.tech || "";
+
+    const start = evt.start?.dateTime || evt.start?.date;
+    const end = evt.end?.dateTime || evt.end?.date;
+    timeEl.textContent = `${formatTime(start)} – ${formatTime(end)}`;
 
     statusSelect.addEventListener("change", () => {
       const newStatus = statusSelect.value;
-      statusPill.textContent = newStatus;
-      statusPill.dataset.status = newStatus;
-      setJobMeta(eventId, { status: newStatus });
+      setMeta(eventId, { status: newStatus });
+      pillEl.textContent = newStatus;
+      pillEl.dataset.status = newStatus;
       applyFilters();
     });
 
-    // Tech
-    techInput.value = tech;
     techInput.addEventListener("change", () => {
-      setJobMeta(eventId, { tech: techInput.value.trim() });
+      setMeta(eventId, { tech: techInput.value.trim() });
       applyFilters();
     });
 
-    // Time
-    const start = evt.start?.dateTime || evt.start?.date;
-    const end = evt.end?.dateTime || evt.end?.date;
-    timeEl.textContent = formatTime(start) + " – " + formatTime(end);
-
-    // Raw JSON
-    rawJsonEl.textContent = JSON.stringify(evt, null, 2);
-    showRawBtn.addEventListener("click", () => {
-      detailsEl.open = !detailsEl.open;
-    });
-
-    // Navigate button
     navigateBtn.addEventListener("click", () => {
-      if (!location) {
-        alert("No location set for this job.");
-        return;
-      }
-      const url = "https://www.google.com/maps/search/?api=1&query="
-        + encodeURIComponent(location);
+      const loc = evt.location || "";
+      if (!loc) return alert("No location set for this event.");
+      const url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(loc);
       window.open(url, "_blank");
     });
 
-    jobsList.appendChild(card);
+    rawJsonEl.textContent = JSON.stringify(evt, null, 2);
+    rawBtn.addEventListener("click", () => {
+      detailsEl.open = !detailsEl.open;
+    });
+
+    jobsList.appendChild(node);
   });
 
   applyFilters();
@@ -235,15 +215,13 @@ function formatTime(iso) {
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-/******** FILTERS ********/
+/******** Filters ********/
 
 function applyFilters() {
-  const statusVal = statusFilter.value;
-  const search = (searchFilter.value || "").toLowerCase();
+  const stFilter = statusFilter.value;
+  const q = (searchFilter.value || "").toLowerCase();
 
-  const cards = [...jobsList.querySelectorAll(".job-card")];
-
-  cards.forEach(card => {
+  [...jobsList.querySelectorAll(".job-card")].forEach(card => {
     const title = card.querySelector(".job-title")?.textContent.toLowerCase() || "";
     const loc = card.querySelector(".job-location")?.textContent.toLowerCase() || "";
     const notes = card.querySelector(".job-notes")?.textContent.toLowerCase() || "";
@@ -252,11 +230,11 @@ function applyFilters() {
 
     let show = true;
 
-    if (statusVal !== "all" && st !== statusVal) show = false;
+    if (stFilter !== "all" && st !== stFilter) show = false;
 
-    if (search) {
+    if (q) {
       const haystack = `${title} ${loc} ${notes} ${tech}`;
-      if (!haystack.includes(search)) show = false;
+      if (!haystack.includes(q)) show = false;
     }
 
     card.style.display = show ? "" : "none";
