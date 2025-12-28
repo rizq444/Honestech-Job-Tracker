@@ -163,9 +163,16 @@ function renderJobs(events) {
     const eventId = evt.id;
     const meta = getMeta(eventId);
 
-    titleEl.textContent = evt.summary || "(No title)";
-    locEl.textContent = evt.location || "No location set";
-    notesEl.textContent = evt.description || "";
+    // If no title, use description as title
+const title = evt.summary && evt.summary.trim()
+  ? evt.summary
+  : (evt.description || "(No title)");
+
+titleEl.textContent = title;
+
+// Only show notes if they are different from title
+notesEl.textContent =
+  evt.description && evt.description !== title ? evt.description : "";
 
     const status = meta.status || "Scheduled";
     pillEl.textContent = status;
