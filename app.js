@@ -130,7 +130,7 @@ async function loadJobs() {
     renderJobs(events);
   } catch (err) {
     console.error("Calendar load error:", err);
-    jobsList.innerHTML = `<div class="empty-state">Error loading events. Try again.</div>`;
+    jobsList.innerHTML = `<div class="empty-state">Error loading events. Check console.</div>`;
   }
 }
 
@@ -155,6 +155,7 @@ function renderJobs(events) {
     const statusSelect = node.querySelector(".job-status-select");
     const techInput = node.querySelector(".job-tech-input");
     const navigateBtn = node.querySelector(".navigate-btn");
+    const clockifyBtn = node.querySelector(".clockify-btn");
     const rawBtn = node.querySelector(".show-raw-btn");
     const detailsEl = node.querySelector(".job-raw");
     const rawJsonEl = node.querySelector(".job-raw-json");
@@ -195,6 +196,35 @@ function renderJobs(events) {
       if (!loc) return alert("No location set for this event.");
       const url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(loc);
       window.open(url, "_blank");
+    });
+
+    // Clockify Option A: copy job info + open Clockify
+    clockifyBtn.addEventListener("click", async () => {
+      const title = evt.summary || "Honestech Job";
+      const loc = evt.location || "";
+      const notes = evt.description ? evt.description.replace(/\s+/g, " ").trim() : "";
+      const tech = techInput?.value ? techInput.value.trim() : "";
+
+      const clipboardText =
+        `HONESTECH JOB\n` +
+        `Title: ${title}\n` +
+        (tech ? `Tech: ${tech}\n` : "") +
+        (loc ? `Location: ${loc}\n` : "") +
+        (notes ? `Notes: ${notes}\n` : "");
+
+      try {
+        await navigator.clipboard.writeText(clipboardText);
+        clockifyBtn.textContent = "Timer Ready ✓";
+        clockifyBtn.disabled = true;
+        setTimeout(() => {
+          clockifyBtn.textContent = "Start Timer";
+          clockifyBtn.disabled = false;
+        }, 3000);
+      } catch (e) {
+        window.prompt("Copy this job text for Clockify:", clipboardText);
+      }
+
+      window.open("https://clockify.me/tracker", "_blank");
     });
 
     rawJsonEl.textContent = JSON.stringify(evt, null, 2);
